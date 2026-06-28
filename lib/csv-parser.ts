@@ -155,8 +155,18 @@ function emptyCaso(): ParsedCaso {
 export function parseCsvBuffer(buffer: Buffer): ParsedCaso[] {
   const text = buffer.toString('latin1');
 
+  // Auto-detecta o separador a partir do cabeçalho (vírgula, ponto-e-vírgula ou tab).
+  const firstLine = text.split(/\r?\n/, 1)[0] || '';
+  const cand: Array<[string, number]> = [
+    [',', (firstLine.match(/,/g) || []).length],
+    [';', (firstLine.match(/;/g) || []).length],
+    ['\t', (firstLine.match(/\t/g) || []).length],
+  ];
+  cand.sort((a, b) => b[1] - a[1]);
+  const delimiter = cand[0][1] > 0 ? cand[0][0] : ',';
+
   const rows: string[][] = parse(text, {
-    delimiter: ',',
+    delimiter,
     skip_empty_lines: true,
     relax_column_count: true,
     relax_quotes: true,

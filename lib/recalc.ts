@@ -10,6 +10,9 @@ import {
  * Recalcula prazo-limite / status / dias restantes APENAS do slot ATUAL.
  * REGRA CRÍTICA (ARQUITETURA.md §4.6 / §14): nunca recalcular W1/W2/W3,
  * que são snapshots congelados da data do upload.
+ *
+ * Atualiza em lote via UPDATE ... FROM (VALUES ...) — poucas round-trips
+ * (chunks de 500), em vez de um updateMany por grupo.
  */
 export async function recalcularSlotAtual(
   today: Date = new Date(),
@@ -32,39 +35,34 @@ export async function recalcularSlotAtual(
     select: { id: true, operadoraGrupo: true, dataRecebimento: true },
   });
 
-  // Agrupa casos que compartilham (operadora, dataRecebimento) -> mesmo prazo.
-  const grupos = new Map<
-    string,
-    { ids: string[]; dataRecebimento: Date | null; operadoraGrupo: string }
-  >();
-  for (const c of casos) {
-    const key = `${c.operadoraGrupo}|${c.dataRecebimento?.toISOString() ?? 'null'}`;
-    const g = grupos.get(key);
-    if (g) g.ids.push(c.id);
-    else
-      grupos.set(key, {
-        ids: [c.id],
-        dataRecebimento: c.dataRecebimento,
-        operadoraGrupo: c.operadoraGrupo,
-      });
-  }
+  const updates = casos.map((c) => {
+    const prazoDias = prazoMap.get(normalizeOperadora(c.operadoraGrupo)) ?? null;
+    const dataLimite = calcDataLimite(c.dataRecebimento, prazoDias);
+    return {
+      id: c.id,
+      dl: dataLimite,
+      st: calcStatus(dataLimite, today),
+      dr: calcDiasRestantes(dataLimite, today),
+    };
+  });
 
+  const esc = (s: string) => s.replace(/'/g, "''");
   let atualizados = 0;
-  for (const g of grupos.values()) {
-    const prazoDias = prazoMap.get(normalizeOperadora(g.operadoraGrupo)) ?? null;
-    const dataLimite = calcDataLimite(g.dataRecebimento, prazoDias);
-    const status = calcStatus(dataLimite, today);
-    const diasRestantes = calcDiasRestantes(dataLimite, today);
-
-    // Atualiza em lotes para não estourar o IN.
-    for (let i = 0; i < g.ids.length; i += 1000) {
-      const chunk = g.ids.slice(i, i + 1000);
-      const res = await prisma.casoGlosa.updateMany({
-        where: { id: { in: chunk } },
-        data: { dataLimiteCalculada: dataLimite, status, diasRestantes },
-      });
-      atualizados += res.count;
-    }
+  for (let i = 0; i < updates.length; i += 500) {
+    const chunk = updates.slice(i, i + 500);
+    const values = chunk
+      .map(
+        (u) =>
+          `('${esc(u.id)}', ${
+            u.dl ? `'${u.dl.toISOString()}'::timestamp` : 'NULL::timestamp'
+          }, '${u.st}', ${u.dr === null ? 'NULL::int' : `${u.dr}::int`})`,
+      )
+      .join(',');
+    const sql = `UPDATE "CasoGlosa" AS c
+      SET "dataLimiteCalculada" = v.dl, "status" = v.st, "diasRestantes" = v.dr
+      FROM (VALUES ${values}) AS v(id, dl, st, dr)
+      WHERE c.id = v.id`;
+    atualizados += await prisma.$executeRawUnsafe(sql);
   }
 
   return { atualizados, semArquivo: false };

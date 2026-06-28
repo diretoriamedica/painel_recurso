@@ -47,6 +47,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'CSV vazio ou inválido.' }, { status: 400 });
   }
 
+  // Salvaguarda: se a coluna de operadora não foi reconhecida (muitos valores numéricos/vazios),
+  // o arquivo está em formato inesperado — rejeita em vez de inserir dados-lixo.
+  const operadoraRuim = casos.filter((c) => {
+    const v = String(c.operadoraGrupo || '').trim();
+    return !v || /^-?\d+([.,]\d+)?$/.test(v);
+  }).length;
+  if (operadoraRuim > casos.length * 0.3) {
+    return NextResponse.json(
+      {
+        error:
+          'Formato de CSV inesperado: a coluna de operadora não foi reconhecida. ' +
+          'Verifique se é o export correto (cabeçalho padrão, separado por vírgula, decimais com ponto).',
+      },
+      { status: 400 },
+    );
+  }
+
   // Prazos existentes
   const prazos = await prisma.prazoOperadora.findMany();
   const prazoMap = new Map<string, number>();
