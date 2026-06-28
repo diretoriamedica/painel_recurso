@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
+import { apiFetch } from '@/lib/api';
 import { Check, X, Trash2, UserPlus } from 'lucide-react';
 
 const PERMS: { key: string; label: string }[] = [
@@ -31,7 +32,7 @@ export default function UsuariosPage() {
 
   async function carregar() {
     setLoading(true);
-    const d = await fetch('/api/usuarios').then((r) => r.json());
+    const d = await apiFetch('/api/usuarios').then((r) => r.json());
     setUsuarios(d.usuarios || []);
     setLoading(false);
   }
@@ -41,7 +42,7 @@ export default function UsuariosPage() {
   }, []);
 
   async function toggle(u: any, key: string) {
-    const res = await fetch('/api/usuarios', {
+    const res = await apiFetch('/api/usuarios', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: u.id, [key]: !u[key] }),
@@ -53,7 +54,7 @@ export default function UsuariosPage() {
 
   async function excluir(u: any) {
     if (!confirm(`Excluir ${u.name}?`)) return;
-    const res = await fetch(`/api/usuarios?id=${u.id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/usuarios?id=${u.id}`, { method: 'DELETE' });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) toast.error(data.error || 'Erro.');
     else {
@@ -63,7 +64,7 @@ export default function UsuariosPage() {
   }
 
   async function criar() {
-    const res = await fetch('/api/usuarios', {
+    const res = await apiFetch('/api/usuarios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(novo),

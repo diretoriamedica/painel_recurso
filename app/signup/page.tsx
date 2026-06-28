@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { apiFetch } from '@/lib/api';
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -27,7 +28,7 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    const res = await fetch('/api/signup', {
+    const res = await apiFetch('/api/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { apiFetch } from '@/lib/api';
 import { Send, Mail } from 'lucide-react';
 
 export default function NotificacoesPage() {
@@ -12,7 +13,7 @@ export default function NotificacoesPage() {
     setEnviando(true);
     setResultado(null);
     try {
-      const res = await fetch('/api/send-alerts', { method: 'POST' });
+      const res = await apiFetch('/api/send-alerts', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || 'Erro ao enviar.');

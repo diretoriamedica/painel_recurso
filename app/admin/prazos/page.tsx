@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { apiFetch } from '@/lib/api';
 import { AlertTriangle, Save, Trash2, Plus } from 'lucide-react';
 
 export default function PrazosPage() {
@@ -13,7 +14,7 @@ export default function PrazosPage() {
 
   async function carregar() {
     setLoading(true);
-    const d = await fetch('/api/prazos').then((r) => r.json());
+    const d = await apiFetch('/api/prazos').then((r) => r.json());
     setPrazos(d.prazos || []);
     setPendentes(d.pendentes || 0);
     setEdits({});
@@ -25,7 +26,7 @@ export default function PrazosPage() {
   }, []);
 
   async function salvar(nomeOperadora: string, prazoDias: string) {
-    const res = await fetch('/api/prazos', {
+    const res = await apiFetch('/api/prazos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -54,7 +55,7 @@ export default function PrazosPage() {
 
   async function excluir(id: string) {
     if (!confirm('Excluir este prazo?')) return;
-    const res = await fetch(`/api/prazos?id=${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/prazos?id=${id}`, { method: 'DELETE' });
     if (!res.ok) toast.error('Erro ao excluir.');
     else toast.success('Prazo removido.');
     carregar();

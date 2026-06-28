@@ -5,6 +5,7 @@ import { KpiCard } from '@/app/components/kpi-card';
 import { MultiSelect } from '@/app/components/multi-select';
 import { DataTable, type Column } from '@/app/components/data-table';
 import { formatBRL } from '@/lib/formatters';
+import { apiFetch } from '@/lib/api';
 
 const SLOT_LABEL: Record<string, string> = {
   ATUAL: 'Atual',
@@ -40,7 +41,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/filters')
+    apiFetch('/api/filters')
       .then((r) => r.json())
       .then((d) => setOpcoes({ operadoras: d.operadoras || [], hospitais: d.hospitais || [] }))
       .catch(() => {});
@@ -54,9 +55,9 @@ export default function DashboardPage() {
     const q = qs.toString() ? `?${qs.toString()}` : '';
     try {
       const [d, e, a] = await Promise.all([
-        fetch(`/api/dashboard${q}`).then((r) => r.json()),
-        fetch(`/api/dashboard/evolucao${q}`).then((r) => r.json()),
-        fetch(`/api/dashboard/acompanhamento${q}`).then((r) => r.json()),
+        apiFetch(`/api/dashboard${q}`).then((r) => r.json()),
+        apiFetch(`/api/dashboard/evolucao${q}`).then((r) => r.json()),
+        apiFetch(`/api/dashboard/acompanhamento${q}`).then((r) => r.json()),
       ]);
       setDash(d);
       setEvol(e);

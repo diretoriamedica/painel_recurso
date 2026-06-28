@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { UploadCloud, RefreshCw, Trash2, AlertTriangle } from 'lucide-react';
 
@@ -22,8 +23,8 @@ export default function UploadPage() {
 
   async function carregar() {
     const [a, p] = await Promise.all([
-      fetch('/api/arquivos').then((r) => r.json()),
-      fetch('/api/prazos').then((r) => r.json()),
+      apiFetch('/api/arquivos').then((r) => r.json()),
+      apiFetch('/api/prazos').then((r) => r.json()),
     ]);
     setArquivos(a.arquivos || []);
     setPendentes(p.pendentes || 0);
@@ -43,7 +44,7 @@ export default function UploadPage() {
     const fd = new FormData();
     fd.append('file', file);
     try {
-      const res = await fetch('/api/upload-csv', { method: 'POST', body: fd });
+      const res = await apiFetch('/api/upload-csv', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error || 'Falha no upload.');
@@ -63,7 +64,7 @@ export default function UploadPage() {
   }
 
   async function setSlot(id: string, slot: string) {
-    const res = await fetch('/api/arquivos', {
+    const res = await apiFetch('/api/arquivos', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, slotPeriodo: slot || null }),
@@ -76,7 +77,7 @@ export default function UploadPage() {
 
   async function excluir(id: string) {
     if (!confirm('Excluir este arquivo e todos os seus casos?')) return;
-    const res = await fetch(`/api/arquivos?id=${id}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/arquivos?id=${id}`, { method: 'DELETE' });
     if (!res.ok) toast.error('Erro ao excluir.');
     else toast.success('Arquivo excluído.');
     carregar();
@@ -85,7 +86,7 @@ export default function UploadPage() {
   async function recalcular() {
     setRecalculando(true);
     try {
-      const res = await fetch('/api/recalculate', { method: 'POST' });
+      const res = await apiFetch('/api/recalculate', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) toast.error(data.error || 'Erro.');
       else if (data.semArquivo) toast('Nenhum arquivo no slot ATUAL.', { icon: 'ℹ️' });
