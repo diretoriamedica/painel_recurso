@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  name               String
+  email              String   @unique
+  password           String
+  phone              String   @default("")
+  isAdmin            Boolean  @default(false)
+  canUpload          Boolean  @default(false)
+  canEditPrazos      Boolean  @default(false)
+  recebeNotificacoes Boolean  @default(false)
+  aprovado           Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model PrazoOperadora {
+  id            String   @id @default(cuid())
+  nomeOperadora String   @unique
+  prazoDias     Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ArquivoCarregado {
+  id          String      @id @default(cuid())
+  slotPeriodo String?
+  dataUpload  DateTime    @default(now())
+  nomeArquivo String
+  cloudPath   String      @default("")
+  casos       CasoGlosa[]
+  createdAt   DateTime    @default(now())
+}
+
+model CasoGlosa {
+  id                       String           @id @default(cuid())
+  arquivoId                String
+  arquivo                  ArquivoCarregado @relation(fields: [arquivoId], references: [id], onDelete: Cascade)
+  hospitalReg              String           @default("")
+  hospitalAlias            String           @default("")
+  clienteNome              String           @default("")
+  hospitalCnpj             String           @default("")
+  operadoraGrupo           String           @default("")
+  operadoraNome            String           @default("")
+  convenioTipoPagamento    String           @default("")
+  dataRecebimento          DateTime?
+  dataGuiaPagamento        DateTime?
+  dataSubmissaoAnalise     DateTime?
+  valorFaturado            Float            @default(0)
+  valorRecebido            Float            @default(0)
+  valorGlosa               Float            @default(0)
+  guiaPrazoEnvioRecurso    DateTime?
+  glosaNaoSubmetida        Float            @default(0)
+  glosaNaoAnalisada        Float            @default(0)
+  valorAceito              Float            @default(0)
+  valorRecursado           Float            @default(0)
+  valorRecursoRecebido     Float            @default(0)
+  valorGlosaMantida        Float            @default(0)
+  glosaMantidaNaoSubmetida Float            @default(0)
+  glosaNaoAnalisadaMantida Float            @default(0)
+  valorAceitoMantido       Float            @default(0)
+  valorRecursadoMantido    Float            @default(0)
+  compRecebimento          String           @default("")
+  mes                      Int              @default(0)
+  ano                      Int              @default(0)
+  ccDataAtualizacao        DateTime?
+  dataLimiteCalculada      DateTime?
+  diasRestantes            Int?
+  status                   String           @default("SEM_PRAZO")
+
+  @@index([arquivoId])
+  @@index([operadoraGrupo])
+  @@index([hospitalAlias])
+  @@index([status])
+}
