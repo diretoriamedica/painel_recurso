@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '@/lib/api';
-import { AlertTriangle, Save, Trash2, Plus } from 'lucide-react';
+import { AlertTriangle, Save, Trash2, Plus, Clock } from 'lucide-react';
 
 export default function PrazosPage() {
   const [prazos, setPrazos] = useState<any[]>([]);
@@ -134,8 +134,8 @@ export default function PrazosPage() {
                       <td className="py-2 px-3">
                         {p.nomeOperadora}
                         {pendente && (
-                          <span className="ml-2 text-xs bg-amber-200 text-amber-800 rounded-full px-2 py-0.5">
-                            ⏳ pendente
+                          <span className="ml-2 text-xs bg-amber-200 text-amber-800 rounded-full px-2 py-0.5 inline-flex items-center gap-1">
+                            <Clock size={11} /> pendente
                           </span>
                         )}
                       </td>

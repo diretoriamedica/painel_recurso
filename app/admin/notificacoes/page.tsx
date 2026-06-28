@@ -23,7 +23,7 @@ export default function NotificacoesPage() {
         toast.success(msg);
         setResultado(msg);
       } else {
-        toast(data.reason || 'Nada a enviar.', { icon: 'ℹ️' });
+        toast(data.reason || 'Nada a enviar.');
         setResultado(data.reason || 'Nada a enviar.');
       }
     } finally {

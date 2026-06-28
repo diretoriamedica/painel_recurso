@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { formatBRL, formatNumber } from '@/lib/formatters';
+import { AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
 
 function useCountUp(target: number, duration = 700) {
   const [value, setValue] = useState(0);
@@ -39,15 +40,16 @@ export function KpiCard({
   const c = useCountUp(count);
 
   const styles = {
-    vencido: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', dot: '🔴' },
-    semana: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', dot: '🟡' },
-    futuro: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', dot: '🟢' },
+    vencido: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', Icon: AlertTriangle, iconColor: 'text-red-600' },
+    semana: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-700', Icon: Clock, iconColor: 'text-yellow-600' },
+    futuro: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', Icon: CheckCircle2, iconColor: 'text-green-600' },
   }[variant];
+  const Icon = styles.Icon;
 
   return (
     <div className={`rounded-xl shadow-md border ${styles.bg} ${styles.border} p-5`}>
       <div className="flex items-center gap-2 text-sm font-medium text-[#444444]">
-        <span>{styles.dot}</span>
+        <Icon size={16} className={styles.iconColor} />
         {title}
       </div>
       <div className={`text-2xl font-bold mt-2 ${styles.text}`}>

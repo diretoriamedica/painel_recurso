@@ -32,7 +32,7 @@ export async function recalcularSlotAtual(
     select: { id: true, operadoraGrupo: true, dataRecebimento: true },
   });
 
-  // Agrupa casos que compartilham (operadora, dataRecebimento) → mesmo prazo.
+  // Agrupa casos que compartilham (operadora, dataRecebimento) -> mesmo prazo.
   const grupos = new Map<
     string,
     { ids: string[]; dataRecebimento: Date | null; operadoraGrupo: string }

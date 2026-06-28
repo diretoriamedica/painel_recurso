@@ -97,7 +97,7 @@ export async function POST() {
   const html = `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:760px;margin:0 auto;color:#263578">
     <div style="background:#263578;color:#fff;padding:20px;border-radius:12px 12px 0 0">
-      <h2 style="margin:0">⚠️ Alerta de Prazos de Recurso</h2>
+      <h2 style="margin:0">Alerta de Prazos de Recurso</h2>
       <p style="margin:6px 0 0;opacity:.85">Painel Recurso · Rede Hospital Casa</p>
     </div>
     <div style="border:1px solid #eee;border-top:none;padding:20px;border-radius:0 0 12px 12px">
@@ -123,7 +123,7 @@ export async function POST() {
   try {
     const res = await sendNotificationEmail({
       to: destinatarios,
-      subject: `⚠️ ${casos.length} prazo(s) de recurso urgente(s) — ${formatBRL(totalUrgente)}`,
+      subject: `${casos.length} prazo(s) de recurso urgente(s) — ${formatBRL(totalUrgente)}`,
       html,
     });
     if (res.skipped) {

@@ -6,6 +6,7 @@ import { MultiSelect } from '@/app/components/multi-select';
 import { DataTable, type Column } from '@/app/components/data-table';
 import { formatBRL } from '@/lib/formatters';
 import { apiFetch } from '@/lib/api';
+import { Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 
 const SLOT_LABEL: Record<string, string> = {
   ATUAL: 'Atual',
@@ -90,7 +91,14 @@ export default function DashboardPage() {
     {
       key: 'prazo',
       label: 'Prazo (dias)',
-      format: (v) => (v == null ? '⏳ pendente' : String(v)),
+      format: (v) =>
+        v == null ? (
+          <span className="inline-flex items-center gap-1 text-amber-600">
+            <Clock size={13} /> pendente
+          </span>
+        ) : (
+          String(v)
+        ),
     },
     { key: 'VENCIDO', label: 'Vencido', numeric: true, format: brl },
     { key: 'SEMANA', label: 'Esta semana', numeric: true, format: brl },
@@ -154,8 +162,9 @@ export default function DashboardPage() {
           {/* Acompanhamento semanal */}
           {acomp?.available && (
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
-              <div className="bg-gradient-to-r from-[#263578] to-[#112888] text-white px-5 py-3 font-semibold">
-                Acompanhamento Semanal (Semana -1 → Atual)
+              <div className="bg-gradient-to-r from-[#263578] to-[#112888] text-white px-5 py-3 font-semibold flex items-center gap-1">
+                Acompanhamento Semanal (Semana -1
+                <ArrowRight size={15} className="inline" /> Atual)
               </div>
               <div className="p-5">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -182,8 +191,8 @@ export default function DashboardPage() {
                 </div>
 
                 {acomp.resumo.pendentes === 0 && acomp.resumo.parciais === 0 ? (
-                  <div className="bg-green-50 text-green-700 rounded-lg px-4 py-3 text-sm">
-                    🎉 Tudo da semana anterior foi resolvido!
+                  <div className="bg-green-50 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2">
+                    <CheckCircle2 size={16} /> Tudo da semana anterior foi resolvido!
                   </div>
                 ) : (
                   <DataTable

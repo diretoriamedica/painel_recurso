@@ -51,9 +51,7 @@ export default function UploadPage() {
       } else {
         toast.success(`${data.totalCasos} caso(s) importado(s).`);
         if (data.operadorasNovas?.length) {
-          toast(`${data.operadorasNovas.length} operadora(s) nova(s) — defina os prazos.`, {
-            icon: '⏳',
-          });
+          toast(`${data.operadorasNovas.length} operadora(s) nova(s) — defina os prazos.`);
         }
         if (fileRef.current) fileRef.current.value = '';
         carregar();
@@ -89,7 +87,7 @@ export default function UploadPage() {
       const res = await apiFetch('/api/recalculate', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) toast.error(data.error || 'Erro.');
-      else if (data.semArquivo) toast('Nenhum arquivo no slot ATUAL.', { icon: 'ℹ️' });
+      else if (data.semArquivo) toast('Nenhum arquivo no slot ATUAL.');
       else toast.success(`${data.atualizados} caso(s) recalculado(s).`);
     } finally {
       setRecalculando(false);
