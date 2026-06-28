@@ -120,9 +120,11 @@ com KPIs corretos). `build` + `tsc` limpos.
 - Subir local: `npm run dev` → http://localhost:3000/painelrecurso.
 - **Red team (2026-06-28)**: revisão de segurança feita — modelo de autorização OK em todas as rotas,
   sem SQL raw/IDOR/segredos. Corrigido: escape de HTML nos e-mails de alerta (`send-alerts`).
-- **Logo + basePath (gotcha)**: com `images.unoptimized`, o `next/image` NÃO prefixa o basePath em
-  `src` string → logo quebrava. Solução: `<img src="/painelrecurso/logo-rede-casa.png">` (caminho
-  já com o prefixo) no login/signup/header.
+- **basePath (gotcha importante)**: o Next só aplica o basePath em `<Link>`, `next/navigation` e
+  `next/image` (este último **não** quando `unoptimized`). NÃO aplica em **`fetch()`** nem em `<img>`.
+  Por isso: (a) o logo usa `<img src="/painelrecurso/logo-rede-casa.png">`; (b) **toda chamada de API
+  no cliente usa `apiFetch()` de `lib/api.ts`** (prefixa `/painelrecurso`) — nunca `fetch('/api/...')`
+  direto, senão a tela bate na raiz (404 no portal) e fica carregando infinitamente.
 - **Hardening Supabase** (`scripts/supabase-hardening.mjs`): RLS ligado nas 4 tabelas; revogado
   EXECUTE de `public.rls_auto_enable()` de PUBLIC/anon/authenticated (resolve os 2 warnings do
   Security Advisor) e revogados os grants amplos de anon/authenticated nas tabelas (app só usa Prisma/postgres).
