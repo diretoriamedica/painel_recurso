@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '@/lib/api';
-import { Check, X, Trash2, UserPlus } from 'lucide-react';
+import { Check, X, Trash2, UserPlus, KeyRound } from 'lucide-react';
 
 const PERMS: { key: string; label: string }[] = [
   { key: 'isAdmin', label: 'Admin' },
@@ -29,6 +29,8 @@ export default function UsuariosPage() {
     recebeNotificacoes: false,
     aprovado: true,
   });
+  const [resetUser, setResetUser] = useState<any>(null);
+  const [resetPwd, setResetPwd] = useState('');
 
   async function carregar() {
     setLoading(true);
@@ -89,6 +91,36 @@ export default function UsuariosPage() {
     carregar();
   }
 
+  function gerarSenha() {
+    const chars =
+      'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+    const arr = new Uint32Array(16);
+    crypto.getRandomValues(arr);
+    let out = '';
+    for (let i = 0; i < 16; i++) out += chars[arr[i] % chars.length];
+    setResetPwd(out);
+  }
+
+  async function salvarReset() {
+    if (resetPwd.length < 8) {
+      toast.error('A senha deve ter ao menos 8 caracteres.');
+      return;
+    }
+    const res = await apiFetch('/api/usuarios', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: resetUser.id, password: resetPwd }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || 'Erro ao redefinir.');
+      return;
+    }
+    toast.success(`Senha de ${resetUser.name} redefinida.`);
+    setResetUser(null);
+    setResetPwd('');
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -145,16 +177,28 @@ export default function UsuariosPage() {
                         </button>
                       </td>
                     ))}
-                    <td className="py-2 px-3 text-right">
-                      {u.id !== session?.user?.id && (
+                    <td className="py-2 px-3">
+                      <div className="flex items-center justify-end gap-3">
                         <button
-                          onClick={() => excluir(u)}
-                          className="text-red-600 hover:text-red-800"
-                          title="Excluir"
+                          onClick={() => {
+                            setResetUser(u);
+                            setResetPwd('');
+                          }}
+                          className="text-[#263578] hover:text-[#F07F00]"
+                          title="Resetar senha"
                         >
-                          <Trash2 size={16} />
+                          <KeyRound size={16} />
                         </button>
-                      )}
+                        {u.id !== session?.user?.id && (
+                          <button
+                            onClick={() => excluir(u)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Excluir"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -166,7 +210,7 @@ export default function UsuariosPage() {
 
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-[#263578]">Novo usuário</h2>
             <input
               placeholder="Nome"
@@ -212,6 +256,56 @@ export default function UsuariosPage() {
                 className="px-4 py-2 text-sm rounded-lg bg-[#F07F00] text-white font-medium"
               >
                 Criar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {resetUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-bold text-[#263578]">Resetar senha</h2>
+            <p className="text-sm text-[#444]">
+              Usuário: <strong>{resetUser.name}</strong> ({resetUser.email})
+            </p>
+            <div>
+              <label className="block text-sm text-[#444] mb-1">
+                Nova senha (mín. 8)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={resetPwd}
+                  onChange={(e) => setResetPwd(e.target.value)}
+                  className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                  placeholder="digite ou gere uma senha"
+                />
+                <button
+                  onClick={gerarSenha}
+                  className="px-3 py-2 text-sm rounded-lg border text-[#263578] hover:border-[#F07F00] whitespace-nowrap"
+                >
+                  Gerar
+                </button>
+              </div>
+              <p className="text-xs text-[#888] mt-1">
+                Anote e repasse ao usuário — ele pode trocar depois no próprio acesso.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setResetUser(null);
+                  setResetPwd('');
+                }}
+                className="px-4 py-2 text-sm rounded-lg border"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarReset}
+                className="px-4 py-2 text-sm rounded-lg bg-[#F07F00] text-white font-medium"
+              >
+                Salvar senha
               </button>
             </div>
           </div>

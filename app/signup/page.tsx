@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
+import { ArrowLeft } from 'lucide-react';
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -50,6 +51,13 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F2F2F2] px-4 py-8">
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
+        <a
+          href="https://www.redehc.com.br"
+          className="inline-flex items-center gap-1 text-sm text-[#263578] hover:text-[#F07F00] mb-4"
+        >
+          <ArrowLeft size={16} /> Voltar ao portal
+        </a>
+
         <div className="flex flex-col items-center mb-6">
           <div className="bg-white rounded-xl p-2 mb-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}

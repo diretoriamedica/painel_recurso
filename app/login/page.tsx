@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,6 +38,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F2F2F2] px-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-8">
+        <a
+          href="https://www.redehc.com.br"
+          className="inline-flex items-center gap-1 text-sm text-[#263578] hover:text-[#F07F00] mb-4"
+        >
+          <ArrowLeft size={16} /> Voltar ao portal
+        </a>
+
         <div className="flex flex-col items-center mb-6">
           <div className="bg-white rounded-xl p-2 mb-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
