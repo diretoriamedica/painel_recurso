@@ -7,6 +7,7 @@ import {
   calcDataLimite,
   calcStatus,
   calcDiasRestantes,
+  dataReferenciaArquivo,
 } from '@/lib/prazo-calculator';
 import { MAX_FILES } from '@/lib/constants';
 
@@ -98,7 +99,9 @@ export async function POST(req: Request) {
     data: { nomeArquivo: file.name, slotPeriodo: null, cloudPath: '' },
   });
 
-  const today = new Date();
+  // Data de referência = semana do export (do nome do arquivo); congela o snapshot
+  // na semana real do arquivo, mesmo que o upload seja feito depois (backfill).
+  const refDate = dataReferenciaArquivo(file.name);
   const rows = casos.map((c) => {
     const prazoDias = prazoMap.get(normalizeOperadora(c.operadoraGrupo)) ?? null;
     const dataLimite = calcDataLimite(c.dataRecebimento, prazoDias);
@@ -106,8 +109,8 @@ export async function POST(req: Request) {
       ...c,
       arquivoId: arquivo.id,
       dataLimiteCalculada: dataLimite,
-      status: calcStatus(dataLimite, today),
-      diasRestantes: calcDiasRestantes(dataLimite, today),
+      status: calcStatus(dataLimite, refDate),
+      diasRestantes: calcDiasRestantes(dataLimite, refDate),
     };
   });
 

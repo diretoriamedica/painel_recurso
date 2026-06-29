@@ -64,7 +64,8 @@ export async function GET(req: Request) {
     const st = c.status as keyof typeof kpis;
     if (STATUS_SEMAFORO.includes(st as any)) {
       kpis[st].valor += v;
-      kpis[st].count += 1;
+      // Conta o caso só se tem glosa em andamento (> 0), como no painel original.
+      if (v > 0) kpis[st].count += 1;
 
       const u = unidades.get(c.hospitalAlias) ?? zeroBucket();
       u[st] += v;

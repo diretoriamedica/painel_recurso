@@ -51,6 +51,26 @@ export function calcDiasRestantes(
   return Math.round((a - b) / 86_400_000);
 }
 
+/**
+ * Data de referência (semana) do arquivo, extraída do nome do export (padrão `_DD-MM-YYYY_`).
+ * Usada para congelar o status do snapshot na semana real do arquivo (e não na hora do upload).
+ */
+export function dataReferenciaArquivo(
+  nomeArquivo: string,
+  fallback: Date = new Date(),
+): Date {
+  const m = (nomeArquivo || '').match(/_(\d{2})-(\d{2})-(\d{4})_/);
+  if (m) {
+    const d = new Date(
+      parseInt(m[3], 10),
+      parseInt(m[2], 10) - 1,
+      parseInt(m[1], 10),
+    );
+    if (!isNaN(d.getTime())) return d;
+  }
+  return fallback;
+}
+
 /** Status semáforo. */
 export function calcStatus(dataLimite: Date | null, today: Date): StatusGlosa {
   if (!dataLimite) return 'SEM_PRAZO';
