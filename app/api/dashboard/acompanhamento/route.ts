@@ -112,17 +112,15 @@ export async function GET(req: Request) {
     resolvidos: items.filter((i) => i.resultado === 'RESOLVIDO').length,
     valorResolvido: items
       .filter((i) => i.resultado === 'RESOLVIDO')
-      .reduce((s, i) => s + i.diff, 0),
+      .reduce((s, i) => s + i.valorW1, 0),
     parciais: items.filter((i) => i.resultado === 'PARCIAL').length,
     valorParcial: items
       .filter((i) => i.resultado === 'PARCIAL')
-      .reduce((s, i) => s + i.diff, 0),
+      .reduce((s, i) => s + i.valorW1, 0),
     pendentes: items.filter((i) => i.resultado === 'PENDENTE').length,
-    valorPendente: Math.abs(
-      items
-        .filter((i) => i.resultado === 'PENDENTE')
-        .reduce((s, i) => s + i.diff, 0)
-    ),
+    valorPendente: items
+      .filter((i) => i.resultado === 'PENDENTE')
+      .reduce((s, i) => s + i.valorW1, 0),
   };
 
   return NextResponse.json({ available: true, resumo, items });
