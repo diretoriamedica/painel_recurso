@@ -21,7 +21,7 @@ recurso por operadora, com um dashboard semáforo de urgência e acompanhamento 
 ## 🧱 Stack
 
 - [Next.js 14](https://nextjs.org/) (App Router) + TypeScript
-- [Prisma ORM](https://www.prisma.io/) + PostgreSQL ([Supabase](https://supabase.com/))
+- [Prisma ORM](https://www.prisma.io/) + PostgreSQL ([Google Cloud SQL](https://cloud.google.com/sql), via Cloud SQL Connector)
 - [NextAuth.js](https://next-auth.js.org/) (Credentials + JWT) + bcryptjs
 - [Tailwind CSS](https://tailwindcss.com/) · [Resend](https://resend.com/) · lucide-react
 
@@ -32,11 +32,12 @@ recurso por operadora, com um dashboard semáforo de urgência e acompanhamento 
 npm install
 
 # 2. Variáveis de ambiente
-cp .env.example .env   # e preencha os valores (Supabase, NextAuth, Resend)
+cp .env.example .env   # e preencha os valores (Cloud SQL, NextAuth, Resend)
 
-# 3. Banco de dados
+# 3. Banco de dados (Cloud SQL) — subir o Auth Proxy antes dos comandos de CLI
+cloud-sql-proxy --gcloud-auth --port 5434 corded-elevator-501121-q9:southamerica-east1:rhc-sistemas &
 npx prisma generate
-npx prisma db push                 # cria as tabelas no Supabase
+npx prisma db push                 # cria as tabelas (via Auth Proxy)
 npx tsx scripts/safe-seed.ts       # cria admins (senha aleatória) + operadoras
 
 # 4. Desenvolvimento
@@ -51,7 +52,8 @@ Veja [`.env.example`](./.env.example):
 
 | Variável | Descrição |
 |----------|-----------|
-| `DATABASE_URL` / `DIRECT_URL` | Conexão Postgres do Supabase (pooler 6543 / direct 5432) |
+| `CLOUD_SQL_INSTANCE` / `GCP_SA_KEY` / `PGUSER` / `PGPASSWORD` / `PGDATABASE` | Conexão de runtime (Vercel) ao Cloud SQL via connector + service account |
+| `DATABASE_URL` / `DIRECT_URL` | Conexão local/CLI ao Cloud SQL via Auth Proxy (`127.0.0.1:5434`) |
 | `NEXTAUTH_SECRET` / `NEXTAUTH_URL` | Configuração do NextAuth |
 | `RESEND_API_KEY` / `RESEND_FROM` | Envio de e-mails de alerta |
 
@@ -62,8 +64,8 @@ vercel deploy --prod
 ```
 
 Publicado no projeto Vercel `painelrecurso-vercel`. O portal `www.redehc.com.br` encaminha
-`/painelrecurso` para este app via rewrite. A função roda na região `pdx1` (mesma do banco) para
-baixa latência.
+`/painelrecurso` para este app via rewrite. A função roda na região `gru1` (São Paulo, mesma do
+Cloud SQL) para baixa latência.
 
 ## 📁 Estrutura
 
@@ -76,7 +78,7 @@ app/
   components/     header, kpi-card, multi-select, data-table
 lib/              prisma, auth-options, csv-parser, prazo-calculator, recalc, email, ...
 prisma/           schema.prisma
-scripts/          safe-seed.ts (seed) + supabase-hardening.mjs
+scripts/          safe-seed.ts (seed), import-prazos, recompute-snapshots, reset-password
 ```
 
 ## ⚙️ Regras de negócio

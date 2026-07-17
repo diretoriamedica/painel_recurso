@@ -13,7 +13,16 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   images: { unoptimized: true },
+  experimental: {
+    serverComponentsExternalPackages: [
+      'pg',
+      '@prisma/adapter-pg',
+      '@google-cloud/cloud-sql-connector',
+      'google-auth-library',
+    ],
+  },
   webpack: (config, { isServer }) => {
+    config.experiments = { ...config.experiments, topLevelAwait: true };
     if (!isServer) {
       config.output.filename = 'static/chunks/[name]-[contenthash:8].js';
       config.output.chunkFilename = 'static/chunks/[contenthash:16].js';

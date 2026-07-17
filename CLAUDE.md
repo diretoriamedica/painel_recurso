@@ -17,7 +17,7 @@ Fonte de verdade detalhada da especificação: **`ARQUITETURA.md`** (na raiz).
 ## Stack
 
 - **Next.js 14** (App Router) + **TypeScript**
-- **Prisma** ORM → **Supabase Postgres**
+- **Prisma** ORM → **Google Cloud SQL for PostgreSQL** (instância `rhc-sistemas`, db `painelrecurso`)
 - **NextAuth** (Credentials Provider, JWT) + **bcryptjs**
 - **Tailwind CSS** (cores da marca em `tailwind.config.ts`)
 - **Resend** (e-mail) · **lucide-react** (ícones) · **react-hot-toast** (feedback)
@@ -26,13 +26,15 @@ Fonte de verdade detalhada da especificação: **`ARQUITETURA.md`** (na raiz).
 
 | Tema | Spec | Aqui |
 |------|------|------|
-| Banco | Postgres/Prisma | **Supabase** projeto `painel_recurso` (`vvrjfoxkxkcnwqdpulxc`), via Prisma + connection string |
+| Banco | Postgres/Prisma | **Google Cloud SQL** (`corded-elevator-501121-q9:southamerica-east1:rhc-sistemas`, db `painelrecurso`), via Prisma + **driver adapter** (`@prisma/adapter-pg`) sobre o **Cloud SQL Connector** (mTLS por service account). Migrado do Supabase em 2026-07-17. |
 | Storage de arquivo | AWS S3 | **Adiado** — `cloudPath` fica vazio; CSV é parseado direto. (Futuro: Supabase Storage) |
 | E-mail | Abacus AI | **Resend** (`lib/email.ts`) |
 | Admin master | Pedro Ambrosio (senha do doc) | **Lucas + Pedro**, senhas aleatórias do seed |
 | Pacotes | Yarn | **npm** |
 
-> ⚠️ O MCP do Supabase nesta máquina aponta para **outro** projeto (Prateleira RHC, `wynydyiatuoffrqrhege`). **Não** crie tabelas do Painel Recurso lá. Este projeto fala com o banco só via Prisma/connection string.
+> ℹ️ Migrado do Supabase para o Cloud SQL em 2026-07-17. O projeto Supabase antigo
+> (`painel_recurso` = `vvrjfoxkxkcnwqdpulxc`) foi mantido como **backup** até validação
+> final — não é mais usado pelo app. O app fala com o Cloud SQL só via Prisma.
 
 ## Comandos
 
@@ -40,24 +42,33 @@ Fonte de verdade detalhada da especificação: **`ARQUITETURA.md`** (na raiz).
 npm run dev                      # ambiente local (http://localhost:3000)
 npm run build                    # build de produção
 npx prisma generate              # gera o Prisma Client
-npx prisma db push               # cria/atualiza as tabelas no Supabase (usa DIRECT_URL)
+npx prisma db push               # cria/atualiza tabelas (usa DIRECT_URL → Auth Proxy)
 npx prisma studio                # inspeciona o banco
-npx tsx scripts/safe-seed.ts     # seed: 2 admins (senha aleatória) + 20 operadoras
+npx tsx scripts/safe-seed.ts     # seed: 2 admins (senha aleatória) + operadoras
 npx tsc --noEmit                 # checagem de tipos
+
+# Banco (Cloud SQL) — subir o Auth Proxy antes dos comandos de CLI/migração:
+cloud-sql-proxy --gcloud-auth --port 5434 corded-elevator-501121-q9:southamerica-east1:rhc-sistemas
 ```
 
 ## Variáveis de ambiente (`.env`)
 
+**Produção (Vercel)** — conexão via Cloud SQL Connector (não usa `DATABASE_URL`):
 ```
-DATABASE_URL   # Supabase pooler (porta 6543, ?pgbouncer=true) — runtime
-DIRECT_URL     # Supabase direct (porta 5432) — migrations/db push
+CLOUD_SQL_INSTANCE   # corded-elevator-501121-q9:southamerica-east1:rhc-sistemas
+GCP_SA_KEY           # JSON da service account vercel-cloudsql (role Cloud SQL Client)
+PGUSER               # painelrecurso
+PGPASSWORD           # senha do usuário do banco
+PGDATABASE           # painelrecurso
 NEXTAUTH_SECRET
-NEXTAUTH_URL   # http://localhost:3000 em dev
+NEXTAUTH_URL
 RESEND_API_KEY
-RESEND_FROM    # "Painel Recurso <remetente@dominio-verificado>"
+RESEND_FROM
 ```
 
-Pegue `DATABASE_URL`/`DIRECT_URL` em: Supabase → Connect → ORMs → Prisma.
+**Local/CLI** — `DATABASE_URL`/`DIRECT_URL` apontam para o Cloud SQL Auth Proxy
+(`127.0.0.1:5434`, `sslmode=disable`); ver `.env.example`. `lib/prisma.ts` usa o
+connector quando `CLOUD_SQL_INSTANCE`+`GCP_SA_KEY` existem, senão cai no `DATABASE_URL`.
 
 ## Estrutura
 
@@ -103,8 +114,11 @@ types/next-auth.d.ts   tipagem da sessão (id + permissões)
 (2 admins + 20 operadoras), e fluxo validado ponta a ponta (login → upload → slot ATUAL → dashboard
 com KPIs corretos). `build` + `tsc` limpos.
 
-- **Região do Supabase**: `us-west-2`, shard pooler `aws-1` → host `aws-1-us-west-2.pooler.supabase.com`
-  (a senha do banco tem chars especiais → vai **URL-encoded** no `.env`).
+- **Banco (Cloud SQL)**: instância `rhc-sistemas` (PostgreSQL 18, edição ENTERPRISE,
+  `db-custom-2-8192`, `southamerica-east1`, IP público + SSL enforced, **sem redes autorizadas** —
+  só conexões autenticadas pela SA via connector). Database `painelrecurso`, usuário de baixo
+  privilégio `painelrecurso` (dono do próprio db/schema, **não** superuser). Instância pensada para
+  **consolidar** vários sistemas do ecossistema, um database por sistema.
 - **Resend**: `RESEND_FROM` = `alertas@painelrecurso.redehc.com.br` (confirmar verificação do domínio
   no Resend antes de usar a tela de Notificações em produção).
 - **Publicado**: `https://www.redehc.com.br/painelrecurso` (portal HUB faz rewrite → alias estável
@@ -112,12 +126,15 @@ com KPIs corretos). `build` + `tsc` limpos.
   `http://localhost:3000/painelrecurso`).
 - Deploy: `vercel deploy --prod --token <VERCEL_TOKEN de ~/.credentials> --scope lucas-projects-f7f32df9`
   (projeto `painelrecurso-vercel`). Env vars de produção já configuradas na Vercel.
-- **Performance**: função Vercel co-localizada com o Supabase via `vercel.json` → `regions: ["pdx1"]`
-  (us-west-2). `DATABASE_URL` usa `&connection_limit=1` (serverless + pgbouncer). Rota `/api/prazos`
-  faz as consultas em paralelo. Resultado: endpoints <0,6s (antes prazos chegava a 20s frio).
-- **MCP Supabase do projeto**: `.mcp.json` registra o MCP apontando para `vvrjfoxkxkcnwqdpulxc`
-  (project_ref correto). Requer autenticação interativa (`claude /mcp` → supabase → Authenticate).
-- Subir local: `npm run dev` → http://localhost:3000/painelrecurso.
+- **Performance**: função Vercel co-localizada com o Cloud SQL via `vercel.json` → `regions: ["gru1"]`
+  (São Paulo, mesma região da instância). Pool do connector com `max: 3` e `statement_timeout` 290s
+  (`lib/prisma.ts`). Rota `/api/prazos` faz as consultas em paralelo.
+- **Conexão Cloud SQL** (`lib/prisma.ts`): runtime usa `@google-cloud/cloud-sql-connector`
+  (`IpAddressTypes.PUBLIC`, auth por `GCP_SA_KEY`) + `@prisma/adapter-pg`; init com top-level await
+  cacheado, com guard de fase de build (`NEXT_PHASE`) para não chamar o GCP durante `next build`.
+  `next.config.js`: `serverComponentsExternalPackages` (pg/adapter/connector) + `topLevelAwait`.
+  A SA `vercel-cloudsql` tem `roles/cloudsql.client`; chave dedicada do Painel Recurso em `GCP_SA_KEY`.
+- Subir local: rodar o Auth Proxy (ver Comandos) e `npm run dev` → http://localhost:3000/painelrecurso.
 - **Red team (2026-06-28)**: revisão de segurança feita — modelo de autorização OK em todas as rotas,
   sem SQL raw/IDOR/segredos. Corrigido: escape de HTML nos e-mails de alerta (`send-alerts`).
 - **basePath (gotcha importante)**: o Next só aplica o basePath em `<Link>`, `next/navigation` e
@@ -125,7 +142,8 @@ com KPIs corretos). `build` + `tsc` limpos.
   Por isso: (a) o logo usa `<img src="/painelrecurso/logo-rede-casa.png">`; (b) **toda chamada de API
   no cliente usa `apiFetch()` de `lib/api.ts`** (prefixa `/painelrecurso`) — nunca `fetch('/api/...')`
   direto, senão a tela bate na raiz (404 no portal) e fica carregando infinitamente.
-- **Hardening Supabase** (`scripts/supabase-hardening.mjs`): RLS ligado nas 4 tabelas; revogado
-  EXECUTE de `public.rls_auto_enable()` de PUBLIC/anon/authenticated (resolve os 2 warnings do
-  Security Advisor) e revogados os grants amplos de anon/authenticated nas tabelas (app só usa Prisma/postgres).
+- **Hardening (Cloud SQL)**: instância sem redes autorizadas (só connector/SA), SSL enforced, usuário
+  de app de baixo privilégio. O antigo `scripts/supabase-hardening.mjs` (roles `anon`/`authenticated`
+  do Supabase) foi removido — não se aplica ao Cloud SQL. **Hardening futuro**: trocar a chave estática
+  da SA por Workload Identity Federation (OIDC Vercel→GCP) para eliminar a chave de longa duração.
 - Pode haver dados de **teste** (CSV de exemplo no slot ATUAL) — remova em `/admin/upload` se quiser começar limpo.
